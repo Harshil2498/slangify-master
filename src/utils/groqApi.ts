@@ -14,7 +14,7 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     5. Origin: Explain where this slang word came from.
     6. Slang Suggestions: Suggest other slang words related to it.
     
-    Format the response as a JSON object with the following keys: definition, synonyms (array), antonyms (array), usage, origin, suggestions (array).`;
+    Format the response as a JSON object with the following keys: definition (string), synonyms (array), antonyms (array), usage, origin, suggestions (array).`;
 
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
@@ -55,8 +55,16 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
       const jsonContent = jsonMatch[1] || content;
       const parsedResult = JSON.parse(jsonContent.trim());
       
+      // Handle potential nested objects in definition
+      let definition = parsedResult.definition;
+      if (typeof definition === 'object') {
+        definition = Object.entries(definition)
+          .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+          .join('\n\n');
+      }
+      
       return {
-        definition: parsedResult.definition,
+        definition: definition,
         synonyms: parsedResult.synonyms || [],
         antonyms: parsedResult.antonyms || [],
         usage: parsedResult.usage,
