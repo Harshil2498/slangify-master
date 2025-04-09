@@ -1,21 +1,21 @@
 
 import { SlangResult } from '../context/SlangContext';
 
-// Using Perplexity API instead of Groq API
-let perplexityApiKey = ''; // Will be set by the user through UI
+// Using Groq API as requested
+let groqApiKey = ''; // Will be set by the user through UI
 
 export function setApiKey(key: string) {
-  perplexityApiKey = key;
+  groqApiKey = key;
   // Store in localStorage for convenience
-  localStorage.setItem('perplexity_api_key', key);
+  localStorage.setItem('groq_api_key', key);
 }
 
 export function getApiKey() {
-  if (!perplexityApiKey) {
+  if (!groqApiKey) {
     // Try to get from localStorage
-    perplexityApiKey = localStorage.getItem('perplexity_api_key') || '';
+    groqApiKey = localStorage.getItem('groq_api_key') || '';
   }
-  return perplexityApiKey;
+  return groqApiKey;
 }
 
 export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult> {
@@ -36,15 +36,15 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     
     Response must be a valid JSON object with keys: definition (string), synonyms (array), antonyms (array), usage (string), origin (string), suggestions (array).`;
 
-    console.log('Fetching slang details with Perplexity API');
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    console.log('Fetching slang details with Groq API');
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',

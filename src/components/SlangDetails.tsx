@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SlangResult } from '../context/SlangContext';
 import LikeButton from './LikeButton';
@@ -27,7 +26,7 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
 
   useEffect(() => {
     // Check localStorage on component mount
-    const savedKey = localStorage.getItem('perplexity_api_key');
+    const savedKey = localStorage.getItem('groq_api_key');
     if (savedKey) {
       setApiKeyState(savedKey);
       setApiKey(savedKey);
@@ -72,12 +71,12 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
       <div className="w-full max-w-4xl mx-auto mt-8 p-6 bg-card rounded-xl shadow-sm">
         <h2 className="text-2xl font-bold text-foreground mb-4">API Key Required</h2>
         <p className="mb-4 text-muted-foreground">
-          To use the slang dictionary feature, you'll need to provide a Perplexity API key.
+          To use the slang dictionary feature, you'll need to provide a Groq API key.
         </p>
         <form onSubmit={handleSubmitApiKey} className="space-y-4">
           <div>
             <label htmlFor="api-key" className="block text-sm font-medium text-foreground mb-1">
-              Perplexity API Key
+              Groq API Key
             </label>
             <input
               id="api-key"
@@ -85,18 +84,18 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
               value={apiKey}
               onChange={(e) => setApiKeyState(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter your Perplexity API key"
+              placeholder="Enter your Groq API key"
               required
             />
             <p className="text-xs text-muted-foreground mt-1">
               You can get an API key from{' '}
               <a 
-                href="https://www.perplexity.ai/settings/api" 
+                href="https://console.groq.com/keys" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                Perplexity API Settings
+                Groq API Settings
               </a>
             </p>
           </div>
@@ -208,7 +207,7 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
           <button 
             onClick={() => {
               setApiKeyState('');
-              localStorage.removeItem('perplexity_api_key');
+              localStorage.removeItem('groq_api_key');
               setApiKey('');
               toast.info('API key removed');
             }}

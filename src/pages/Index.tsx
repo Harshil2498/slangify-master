@@ -25,7 +25,7 @@ const Index = () => {
               Discover the World of <span className="text-primary">Slang</span>
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
-              Search for any slang term and get instant definitions, examples, and related slang words powered by AI.
+              Search for any slang term and get instant definitions, examples, and related slang words powered by Groq AI.
             </p>
           </motion.div>
           
