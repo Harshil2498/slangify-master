@@ -36,6 +36,9 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
     show: { opacity: 1, y: 0 }
   };
 
+  // Check if we have meaningful data to display
+  const hasDetails = definition || usage || origin || synonyms.length > 0 || antonyms.length > 0;
+
   return (
     <div className="w-full max-w-4xl mx-auto mt-8 p-6 bg-card rounded-xl shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -44,6 +47,12 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
         </h2>
         <LikeButton slangTerm={slangTerm} isLiked={isLiked} />
       </div>
+
+      {!hasDetails && (
+        <div className="py-4 text-center">
+          <p className="text-muted-foreground">Hmm, we couldn't find detailed information for this slang term. Try another search!</p>
+        </div>
+      )}
 
       <motion.div
         variants={container}
@@ -54,7 +63,7 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
         {definition && (
           <motion.section variants={item} className="animate-slide-up">
             <h3 className="text-lg font-semibold mb-2 text-foreground">Definition</h3>
-            <p className="text-card-foreground">{definition}</p>
+            <p className="text-card-foreground whitespace-pre-line">{definition}</p>
           </motion.section>
         )}
 
