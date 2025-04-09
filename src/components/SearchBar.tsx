@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SearchIcon } from '../assets/icons';
 import { useSlang } from '../context/SlangContext';
 import { fetchSlangDetails } from '../utils/groqApi';
@@ -19,24 +20,41 @@ const SearchBar: React.FC = () => {
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle slang parameter from URL (for favorites navigation)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const slangParam = params.get('slang');
     
-    if (!localSearchTerm.trim()) {
+    if (slangParam) {
+      setLocalSearchTerm(slangParam);
+      handleSearch(null, slangParam);
+      // Clear the parameter from URL
+      navigate('/', { replace: true });
+    }
+  }, [location.search]);
+
+  const handleSearch = async (e: React.FormEvent | null, overrideSlang?: string) => {
+    if (e) e.preventDefault();
+    
+    const termToSearch = overrideSlang || localSearchTerm;
+    
+    if (!termToSearch.trim()) {
       toast.error('Please enter a slang term');
       return;
     }
 
-    setSearchTerm(localSearchTerm);
+    setSearchTerm(termToSearch);
     setIsLoading(true);
     clearResults();
 
     try {
-      const result = await fetchSlangDetails(localSearchTerm);
+      const result = await fetchSlangDetails(termToSearch);
       
       // Add liked status to the result
-      const isLiked = likedSlangs[localSearchTerm.toLowerCase()] || false;
+      const isLiked = likedSlangs[termToSearch.toLowerCase()] || false;
       
       setSlangResult({
         ...result,

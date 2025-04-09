@@ -2,7 +2,9 @@
 import React from 'react';
 import { HeartIcon } from '../assets/icons';
 import { useSlang } from '../context/SlangContext';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface LikeButtonProps {
   slangTerm: string;
@@ -11,13 +13,21 @@ interface LikeButtonProps {
 
 const LikeButton: React.FC<LikeButtonProps> = ({ slangTerm, isLiked = false }) => {
   const { toggleLike } = useSlang();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleLike = () => {
-    toggleLike(slangTerm.toLowerCase());
-    
-    if (!isLiked) {
-      toast.success(`Added "${slangTerm}" to your favorites`);
+    if (!user) {
+      toast.error('Please sign in to save favorites', {
+        action: {
+          label: 'Sign In',
+          onClick: () => navigate('/auth')
+        }
+      });
+      return;
     }
+    
+    toggleLike(slangTerm.toLowerCase());
   };
 
   return (
