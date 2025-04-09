@@ -49,9 +49,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      // Using signUp with autoConfirm set to true to bypass email verification
+      const { error, data } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            email_confirmed: true
+          }
+        }
+      });
+      
       if (error) throw error;
-      toast.success('Sign up successful! Please check your email for verification.');
+      
+      // After signup, directly sign in the user
+      if (data.user) {
+        await signIn(email, password);
+        toast.success('Account created successfully!');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An error occurred during sign up');
       throw error;
