@@ -1,11 +1,31 @@
 
 import { SlangResult } from '../context/SlangContext';
 
-const GROQ_API_KEY = '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';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+// Using Perplexity API instead of Groq API
+let perplexityApiKey = ''; // Will be set by the user through UI
+
+export function setApiKey(key: string) {
+  perplexityApiKey = key;
+  // Store in localStorage for convenience
+  localStorage.setItem('perplexity_api_key', key);
+}
+
+export function getApiKey() {
+  if (!perplexityApiKey) {
+    // Try to get from localStorage
+    perplexityApiKey = localStorage.getItem('perplexity_api_key') || '';
+  }
+  return perplexityApiKey;
+}
 
 export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult> {
   try {
+    const apiKey = getApiKey();
+    
+    if (!apiKey) {
+      throw new Error('API key not provided');
+    }
+
     const prompt = `Provide detailed information for the slang word: "${slangTerm}". 
     1. Definition: Explain its standard English and slang meanings.
     2. Synonyms: List similar slang words.
@@ -16,23 +36,28 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     
     Response must be a valid JSON object with keys: definition (string), synonyms (array), antonyms (array), usage (string), origin (string), suggestions (array).`;
 
-    const response = await fetch(GROQ_API_URL, {
+    console.log('Fetching slang details with Perplexity API');
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama3-70b-8192",
+        model: 'llama-3.1-sonar-small-128k-online',
         messages: [
           {
-            role: "user",
+            role: 'system',
+            content: 'You are a helpful assistant that generates slang information. Always respond in valid, properly formatted JSON.'
+          },
+          {
+            role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 1024
-      })
+        temperature: 0.2,
+        max_tokens: 1000
+      }),
     });
 
     if (!response.ok) {
