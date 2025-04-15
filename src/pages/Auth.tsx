@@ -10,6 +10,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   
@@ -23,12 +24,14 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setMessage('');
     
     try {
       if (isLogin) {
         await signIn(email, password);
       } else {
         await signUp(email, password);
+        setMessage('Please check your email for verification link.');
       }
       // Navigate will happen automatically due to auth state change
     } catch (error) {
@@ -57,6 +60,11 @@ const Auth = () => {
           </div>
           
           <div className="bg-card rounded-lg shadow-sm p-6 border">
+            {message && (
+              <div className="mb-4 p-3 bg-primary/10 text-primary rounded-md">
+                {message}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
@@ -107,7 +115,10 @@ const Auth = () => {
             
             <div className="mt-6 text-center">
               <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setMessage('');
+                }}
                 className="text-primary hover:underline text-sm"
                 type="button"
               >
