@@ -64,7 +64,9 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
 
   // Check if we have meaningful data to display
   const hasDetails = definition || usage || origin || synonyms.length > 0 || antonyms.length > 0;
-  const needsApiKey = !getApiKey();
+  
+  // Since we have a pre-configured API key, we don't need to show the API key form
+  const needsApiKey = false;
 
   if (needsApiKey) {
     return (
@@ -204,17 +206,7 @@ const SlangDetails: React.FC<SlangDetailsProps> = ({ result, slangTerm }) => {
         )}
         
         <div className="mt-8 pt-4 border-t border-border">
-          <button 
-            onClick={() => {
-              setApiKeyState('');
-              localStorage.removeItem('groq_api_key');
-              setApiKey('');
-              toast.info('API key removed');
-            }}
-            className="text-sm text-muted-foreground hover:text-primary"
-          >
-            Change API Key
-          </button>
+          <p className="text-xs text-muted-foreground">Using Groq API with pre-configured key</p>
         </div>
       </motion.div>
     </div>

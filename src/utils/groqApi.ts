@@ -1,8 +1,8 @@
 
 import { SlangResult } from '../context/SlangContext';
 
-// Using Groq API as requested
-let groqApiKey = ''; // Will be set by the user through UI
+// Using Groq API as requested with default key
+let groqApiKey = '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'; 
 
 export function setApiKey(key: string) {
   groqApiKey = key;
@@ -13,7 +13,10 @@ export function setApiKey(key: string) {
 export function getApiKey() {
   if (!groqApiKey) {
     // Try to get from localStorage
-    groqApiKey = localStorage.getItem('groq_api_key') || '';
+    const storedKey = localStorage.getItem('groq_api_key') || '';
+    if (storedKey) {
+      groqApiKey = storedKey;
+    }
   }
   return groqApiKey;
 }

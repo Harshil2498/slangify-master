@@ -26,6 +26,7 @@ const Index = () => {
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
               Search for any slang term and get instant definitions, examples, and related slang words powered by Groq AI.
+              <span className="block text-xs mt-1 text-primary">API Key pre-configured.</span>
             </p>
           </motion.div>
           
