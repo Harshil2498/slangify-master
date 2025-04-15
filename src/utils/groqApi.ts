@@ -37,7 +37,7 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     5. Origin: Explain where this slang word came from.
     6. Slang Suggestions: Suggest other slang words related to it.
     
-    Response must be a valid JSON object with keys: definition (string), synonyms (array), antonyms (array), usage (string), origin (string), suggestions (array).`;
+    Format your response as a proper JSON object with these keys: definition (string), synonyms (array of strings), antonyms (array of strings), usage (string), origin (string), suggestions (array of strings). Do not include any explanations in parentheses in the array values.`;
 
     console.log('Fetching slang details with Groq API');
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -51,7 +51,7 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that generates slang information. Always respond in valid, properly formatted JSON.'
+            content: 'You are a helpful assistant that generates slang information. Always respond with properly formatted JSON only. For arrays, only include string values without any explanations in parentheses.'
           },
           {
             role: 'user',
@@ -74,17 +74,22 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     const content = data.choices[0].message.content;
     console.log("API Response:", content);
     
-    // Extract JSON from the content that might be wrapped in markdown code blocks
-    let jsonContent = content;
+    // Extract JSON from the content
+    let jsonContent = content.trim();
     
-    // If content is wrapped in markdown code block, extract it
-    const jsonBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    // Remove markdown code blocks if present
+    const jsonBlockMatch = jsonContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (jsonBlockMatch && jsonBlockMatch[1]) {
       jsonContent = jsonBlockMatch[1].trim();
     }
     
     try {
-      // Parse the JSON content directly
+      // Fix the common issues with the JSON before parsing
+      // 1. Fix arrays with explanations in parentheses
+      jsonContent = jsonContent.replace(/\"([^\"]+)\" \([^\)]+\)/g, '"$1"');
+      // 2. Fix entries that might be missing quotes around keys
+      jsonContent = jsonContent.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
+      
       const parsedResult = JSON.parse(jsonContent);
       
       // Handle potential nested objects in definition
@@ -97,16 +102,16 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
       
       return {
         definition: definition || '',
-        synonyms: parsedResult.synonyms || [],
-        antonyms: parsedResult.antonyms || [],
+        synonyms: Array.isArray(parsedResult.synonyms) ? parsedResult.synonyms.map((s: any) => typeof s === 'string' ? s.replace(/\([^)]*\)/g, '').trim() : s) : [],
+        antonyms: Array.isArray(parsedResult.antonyms) ? parsedResult.antonyms.map((a: any) => typeof a === 'string' ? a.replace(/\([^)]*\)/g, '').trim() : a) : [],
         usage: parsedResult.usage || '',
         origin: parsedResult.origin || '',
-        suggestions: parsedResult.suggestions || []
+        suggestions: Array.isArray(parsedResult.suggestions) ? parsedResult.suggestions.map((s: any) => typeof s === 'string' ? s.replace(/\([^)]*\)/g, '').trim() : s) : []
       };
     } catch (jsonError) {
       console.error('Error parsing JSON response:', jsonError);
       
-      // If JSON parsing fails, use regex fallback
+      // If JSON parsing fails completely, use regex fallback
       return {
         definition: extractContent(content, 'Definition') || 'No definition available',
         synonyms: extractListContent(content, 'Synonyms'),
@@ -137,6 +142,6 @@ function extractListContent(text: string, section: string): string[] {
   // Split by commas, or bullet points
   return content
     .split(/[,•]/)
-    .map(item => item.trim())
+    .map(item => item.trim().replace(/\([^)]*\)/g, '').trim()) // Remove explanations in parentheses
     .filter(Boolean);
 }
