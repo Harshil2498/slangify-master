@@ -11,9 +11,17 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  isTestEmail: (email: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper function to check if email is a test domain (for development purposes)
+const isTestEmailDomain = (email: string): boolean => {
+  const testDomains = ['example.com', 'test.com', 'localhost.com', 'fake.com'];
+  const domain = email.split('@')[1]?.toLowerCase();
+  return testDomains.includes(domain);
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -47,9 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const isTestEmail = (email: string): boolean => {
+    return isTestEmailDomain(email);
+  };
+
   const signUp = async (email: string, password: string) => {
     try {
-      // Removed email_confirmed option since it was causing validation issues
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -88,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, isLoading, signUp, signIn, signOut, isTestEmail }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useEffect } from 'react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,7 +14,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, isTestEmail } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -31,7 +34,13 @@ const Auth = () => {
         await signIn(email, password);
       } else {
         await signUp(email, password);
-        setMessage('Please check your email for verification link.');
+        
+        // For test domains, show special message
+        if (isTestEmail(email)) {
+          setMessage('Test account created! Since you used a test email domain, you can now try signing in with the same credentials.');
+        } else {
+          setMessage('Please check your email for verification link.');
+        }
       }
       // Navigate will happen automatically due to auth state change
     } catch (error) {
@@ -61,45 +70,48 @@ const Auth = () => {
           
           <div className="bg-card rounded-lg shadow-sm p-6 border">
             {message && (
-              <div className="mb-4 p-3 bg-primary/10 text-primary rounded-md">
-                {message}
-              </div>
+              <Alert className="mb-4">
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
             )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
                   Email
                 </label>
-                <input
+                <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full"
                   required
                 />
+                {!isLogin && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You can use a test email like test@example.com or any real email
+                  </p>
+                )}
               </div>
               
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                   Password
                 </label>
-                <input
+                <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30"
                   required
                   minLength={6}
                 />
               </div>
               
-              <button
+              <Button
                 type="submit"
-                className={`w-full bg-primary text-primary-foreground py-2 rounded-md transition-colors hover:bg-primary/90 ${
-                  isLoading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -110,7 +122,7 @@ const Auth = () => {
                 ) : (
                   <>{isLogin ? 'Sign In' : 'Sign Up'}</>
                 )}
-              </button>
+              </Button>
             </form>
             
             <div className="mt-6 text-center">
