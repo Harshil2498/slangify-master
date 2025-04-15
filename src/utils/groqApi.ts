@@ -74,43 +74,18 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
     const content = data.choices[0].message.content;
     console.log("API Response:", content);
     
-    // Try to parse the JSON response
+    // Extract JSON from the content that might be wrapped in markdown code blocks
+    let jsonContent = content;
+    
+    // If content is wrapped in markdown code block, extract it
+    const jsonBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch && jsonBlockMatch[1]) {
+      jsonContent = jsonBlockMatch[1].trim();
+    }
+    
     try {
-      // Extract JSON from various potential formats
-      const jsonRegexPatterns = [
-        /```json\n([\s\S]*?)\n```/, // JSON in code block with json tag
-        /```([\s\S]*?)```/,         // JSON in any code block
-        /{[\s\S]*?}/                // Raw JSON object
-      ];
-      
-      let jsonContent = content;
-      for (const pattern of jsonRegexPatterns) {
-        const match = content.match(pattern);
-        if (match && match[1]) {
-          jsonContent = match[1].trim();
-          break;
-        }
-      }
-      
-      // Clean up the content before parsing
-      jsonContent = jsonContent.replace(/(\w+):/g, '"$1":'); // Add quotes to keys
-      jsonContent = jsonContent.replace(/'/g, '"');          // Replace single quotes with double quotes
-      
-      // Try parsing the cleaned JSON
-      let parsedResult;
-      try {
-        parsedResult = JSON.parse(jsonContent);
-      } catch (parseError) {
-        console.error("First parsing attempt failed:", parseError);
-        // If parsing failed, try to extract the JSON part directly
-        const jsonMatch = content.match(/{[\s\S]*?}/);
-        if (jsonMatch) {
-          const directJson = jsonMatch[0].replace(/(\w+):/g, '"$1":').replace(/'/g, '"');
-          parsedResult = JSON.parse(directJson);
-        } else {
-          throw parseError;
-        }
-      }
+      // Parse the JSON content directly
+      const parsedResult = JSON.parse(jsonContent);
       
       // Handle potential nested objects in definition
       let definition = parsedResult.definition;
@@ -121,23 +96,23 @@ export async function fetchSlangDetails(slangTerm: string): Promise<SlangResult>
       }
       
       return {
-        definition: definition || extractContent(content, 'Definition'),
-        synonyms: parsedResult.synonyms || extractListContent(content, 'Synonyms'),
-        antonyms: parsedResult.antonyms || extractListContent(content, 'Antonyms'),
-        usage: parsedResult.usage || extractContent(content, 'Usage'),
-        origin: parsedResult.origin || extractContent(content, 'Origin'),
-        suggestions: parsedResult.suggestions || extractListContent(content, 'Suggestions')
+        definition: definition || '',
+        synonyms: parsedResult.synonyms || [],
+        antonyms: parsedResult.antonyms || [],
+        usage: parsedResult.usage || '',
+        origin: parsedResult.origin || '',
+        suggestions: parsedResult.suggestions || []
       };
-    } catch (parseError) {
-      console.error('Error parsing JSON response:', parseError);
+    } catch (jsonError) {
+      console.error('Error parsing JSON response:', jsonError);
       
-      // Fallback: Extract information using regex
+      // If JSON parsing fails, use regex fallback
       return {
-        definition: extractContent(content, 'Definition'),
+        definition: extractContent(content, 'Definition') || 'No definition available',
         synonyms: extractListContent(content, 'Synonyms'),
         antonyms: extractListContent(content, 'Antonyms'),
-        usage: extractContent(content, 'Usage'),
-        origin: extractContent(content, 'Origin'),
+        usage: extractContent(content, 'Usage') || 'No usage example available',
+        origin: extractContent(content, 'Origin') || 'Origin unknown',
         suggestions: extractListContent(content, 'Suggestions')
       };
     }
