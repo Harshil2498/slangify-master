@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { ObjectId } from 'mongodb';
+import { ObjectId } from '../integrations/browser-mongodb/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
-import { getFavoriteSlangCollection, FavoriteSlang } from '../integrations/mongodb/models/FavoriteSlang';
+import { getFavoriteSlangCollection, FavoriteSlang } from '../integrations/browser-mongodb/models/FavoriteSlang';
 
 export interface SlangResult {
   definition?: string;
@@ -41,12 +40,10 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const { user } = useAuth();
 
-  // Fetch favorites when user logs in
   useEffect(() => {
     if (user) {
       fetchFavorites();
     } else {
-      // Clear favorites if user logs out
       setLikedSlangs({});
     }
   }, [user]);
@@ -65,7 +62,6 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       setLikedSlangs(favoritesMap);
       
-      // Update current result if it exists
       if (slangResult && searchTerm) {
         setSlangResult({
           ...slangResult,
@@ -86,14 +82,12 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const normalizedSlang = slang.toLowerCase();
     const isCurrentlyLiked = likedSlangs[normalizedSlang];
     
-    // Optimistic update
     setLikedSlangs(prev => {
       const newLikedSlangs = { ...prev };
       newLikedSlangs[normalizedSlang] = !isCurrentlyLiked;
       return newLikedSlangs;
     });
     
-    // Update result if it's the current slang
     if (slangResult && searchTerm.toLowerCase() === normalizedSlang) {
       setSlangResult({
         ...slangResult,
@@ -105,7 +99,6 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const favoritesCollection = getFavoriteSlangCollection();
       
       if (!isCurrentlyLiked) {
-        // Add to favorites
         await favoritesCollection.insertOne({
           userId: user._id,
           slangTerm: normalizedSlang,
@@ -113,7 +106,6 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
         toast.success(`Added "${slang}" to your favorites`);
       } else {
-        // Remove from favorites
         await favoritesCollection.deleteOne({
           userId: user._id,
           slangTerm: normalizedSlang
@@ -121,7 +113,6 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         toast.success(`Removed "${slang}" from your favorites`);
       }
     } catch (error) {
-      // Revert on error
       setLikedSlangs(prev => {
         const newLikedSlangs = { ...prev };
         newLikedSlangs[normalizedSlang] = isCurrentlyLiked;

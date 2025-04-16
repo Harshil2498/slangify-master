@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSlang } from '../context/SlangContext';
-import { getFavoriteSlangCollection } from '../integrations/mongodb/models/FavoriteSlang';
+import { getFavoriteSlangCollection } from '../integrations/browser-mongodb/models/FavoriteSlang';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 

@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ObjectId } from 'mongodb';
+import { ObjectId } from '../integrations/browser-mongodb/client';
 import { toast } from 'sonner';
 import { 
   createUser, 
@@ -8,9 +8,9 @@ import {
   signOutUser, 
   verifySession, 
   isTestEmailDomain
-} from '../utils/auth';
-import { connectToMongoDB } from '../integrations/mongodb/client';
-import { User } from '../integrations/mongodb/models/User';
+} from '../utils/browser-auth';
+import { connectToMongoDB } from '../integrations/browser-mongodb/client';
+import { User } from '../integrations/browser-mongodb/models/User';
 
 interface Session {
   token: string;

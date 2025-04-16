@@ -12,7 +12,7 @@ import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
-import { connectToMongoDB } from "./integrations/mongodb/client";
+import { connectToMongoDB } from "./integrations/browser-mongodb/client";
 
 const queryClient = new QueryClient();
 
