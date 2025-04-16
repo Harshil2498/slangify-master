@@ -1,8 +1,8 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { ObjectId } from '../integrations/browser-mongodb/client';
-import { toast } from 'sonner';
+import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { getFavoriteSlangCollection, FavoriteSlang } from '../integrations/browser-mongodb/models/FavoriteSlang';
+import { toast } from 'sonner';
 
 export interface SlangResult {
   definition?: string;
@@ -40,32 +40,39 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const { user } = useAuth();
 
+  // Fetch favorites when user logs in
   useEffect(() => {
     if (user) {
       fetchFavorites();
     } else {
+      // Clear favorites if user logs out
       setLikedSlangs({});
     }
   }, [user]);
 
   const fetchFavorites = async () => {
-    if (!user || !user._id) return;
+    if (!user) return;
     
     try {
-      const favoritesCollection = getFavoriteSlangCollection();
-      const favorites = await favoritesCollection.find({ userId: user._id }).toArray();
+      const { data, error } = await supabase
+        .from('favorite_slangs')
+        .select('slang_term')
+        .eq('user_id', user.id);
       
-      const favoritesMap: Record<string, boolean> = {};
-      favorites.forEach(item => {
-        favoritesMap[item.slangTerm.toLowerCase()] = true;
+      if (error) throw error;
+      
+      const favorites: Record<string, boolean> = {};
+      data.forEach(item => {
+        favorites[item.slang_term.toLowerCase()] = true;
       });
       
-      setLikedSlangs(favoritesMap);
+      setLikedSlangs(favorites);
       
+      // Update current result if it exists
       if (slangResult && searchTerm) {
         setSlangResult({
           ...slangResult,
-          isLiked: favoritesMap[searchTerm.toLowerCase()] || false
+          isLiked: favorites[searchTerm.toLowerCase()] || false
         });
       }
     } catch (error) {
@@ -74,7 +81,7 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const toggleLike = async (slang: string) => {
-    if (!user || !user._id) {
+    if (!user) {
       toast.error('Please sign in to save favorites');
       return;
     }
@@ -82,12 +89,14 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const normalizedSlang = slang.toLowerCase();
     const isCurrentlyLiked = likedSlangs[normalizedSlang];
     
+    // Optimistic update
     setLikedSlangs(prev => {
       const newLikedSlangs = { ...prev };
       newLikedSlangs[normalizedSlang] = !isCurrentlyLiked;
       return newLikedSlangs;
     });
     
+    // Update result if it's the current slang
     if (slangResult && searchTerm.toLowerCase() === normalizedSlang) {
       setSlangResult({
         ...slangResult,
@@ -96,23 +105,27 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     
     try {
-      const favoritesCollection = getFavoriteSlangCollection();
-      
       if (!isCurrentlyLiked) {
-        await favoritesCollection.insertOne({
-          userId: user._id,
-          slangTerm: normalizedSlang,
-          createdAt: new Date()
-        });
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorite_slangs')
+          .insert({ user_id: user.id, slang_term: normalizedSlang });
+          
+        if (error) throw error;
         toast.success(`Added "${slang}" to your favorites`);
       } else {
-        await favoritesCollection.deleteOne({
-          userId: user._id,
-          slangTerm: normalizedSlang
-        });
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorite_slangs')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('slang_term', normalizedSlang);
+          
+        if (error) throw error;
         toast.success(`Removed "${slang}" from your favorites`);
       }
     } catch (error) {
+      // Revert on error
       setLikedSlangs(prev => {
         const newLikedSlangs = { ...prev };
         newLikedSlangs[normalizedSlang] = isCurrentlyLiked;

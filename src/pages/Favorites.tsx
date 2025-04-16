@@ -3,13 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSlang } from '../context/SlangContext';
-import { getFavoriteSlangCollection } from '../integrations/browser-mongodb/models/FavoriteSlang';
+import { supabase } from '../integrations/supabase/client';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 
 interface FavoriteSlang {
-  slangTerm: string;
-  createdAt: Date;
+  slang_term: string;
+  created_at: string;
 }
 
 const Favorites = () => {
@@ -29,13 +29,14 @@ const Favorites = () => {
     const fetchFavorites = async () => {
       setIsLoading(true);
       try {
-        // Use MongoDB to fetch favorites
-        const favoritesCollection = getFavoriteSlangCollection();
-        const favoritesData = await favoritesCollection
-          .find({ userId: user._id })
-          .toArray();
+        const { data, error } = await supabase
+          .from('favorite_slangs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
           
-        setFavorites(favoritesData || []);
+        if (error) throw error;
+        setFavorites(data || []);
       } catch (error) {
         console.error('Error fetching favorites:', error);
       } finally {
@@ -46,21 +47,9 @@ const Favorites = () => {
     fetchFavorites();
   }, [user, navigate]);
 
-  const handleRemoveFavorite = async (slang: string) => {
-    try {
-      if (user && user._id) {
-        const favoritesCollection = getFavoriteSlangCollection();
-        await favoritesCollection.deleteOne({ 
-          userId: user._id,
-          slangTerm: slang 
-        });
-      }
-      
-      toggleLike(slang);
-      setFavorites(favorites.filter(fav => fav.slangTerm !== slang));
-    } catch (error) {
-      console.error('Error removing favorite:', error);
-    }
+  const handleRemoveFavorite = (slang: string) => {
+    toggleLike(slang);
+    setFavorites(favorites.filter(fav => fav.slang_term !== slang));
   };
 
   const handleSlangClick = (slang: string) => {
@@ -93,7 +82,7 @@ const Favorites = () => {
               >
                 {favorites.map((fav, index) => (
                   <motion.div
-                    key={fav.slangTerm}
+                    key={fav.slang_term}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index, duration: 0.3 }}
@@ -101,13 +90,13 @@ const Favorites = () => {
                   >
                     <div className="flex items-center justify-between">
                       <button
-                        onClick={() => handleSlangClick(fav.slangTerm)}
+                        onClick={() => handleSlangClick(fav.slang_term)}
                         className="text-xl font-medium text-foreground hover:text-primary transition-colors"
                       >
-                        {fav.slangTerm}
+                        {fav.slang_term}
                       </button>
                       <button
-                        onClick={() => handleRemoveFavorite(fav.slangTerm)}
+                        onClick={() => handleRemoveFavorite(fav.slang_term)}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
                         aria-label="Remove from favorites"
                       >
@@ -117,7 +106,7 @@ const Favorites = () => {
                       </button>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Added on {new Date(fav.createdAt).toLocaleDateString()}
+                      Added on {new Date(fav.created_at).toLocaleDateString()}
                     </p>
                   </motion.div>
                 ))}
