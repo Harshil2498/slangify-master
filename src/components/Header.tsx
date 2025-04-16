@@ -2,16 +2,26 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSlang } from '../context/SlangContext';
 import { HeartIcon, HomeIcon, TrendingUpIcon } from 'lucide-react';
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { clearResults } = useSlang();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Handle home navigation with clearing results
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    clearResults();
+    navigate('/');
+  };
 
   // Handle Popular Slang link click with proper scrolling
   const handlePopularClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    clearResults();
     
     if (location.pathname !== '/') {
       // If not on home page, navigate to home page first then scroll
@@ -50,15 +60,16 @@ const Header = () => {
           <nav>
             <ul className="flex items-center space-x-4 md:space-x-6">
               <li>
-                <Link 
-                  to="/"
+                <a 
+                  href="/"
+                  onClick={handleHomeClick}
                   className={`flex items-center px-3 py-1.5 rounded-md hover:bg-primary/10 transition-colors ${
                     location.pathname === '/' && !location.hash ? 'text-primary font-medium' : ''
                   }`}
                 >
                   <HomeIcon className="w-5 h-5 mr-1.5" />
                   <span>Home</span>
-                </Link>
+                </a>
               </li>
               <li>
                 <a 
@@ -116,3 +127,4 @@ const Header = () => {
 };
 
 export default Header;
+
