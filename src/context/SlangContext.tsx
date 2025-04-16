@@ -1,8 +1,9 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '../integrations/supabase/client';
-import { useAuth } from './AuthContext';
+import { ObjectId } from 'mongodb';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
+import { getFavoriteSlangCollection, FavoriteSlang } from '../integrations/mongodb/models/FavoriteSlang';
 
 export interface SlangResult {
   definition?: string;
@@ -51,28 +52,24 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [user]);
 
   const fetchFavorites = async () => {
-    if (!user) return;
+    if (!user || !user._id) return;
     
     try {
-      const { data, error } = await supabase
-        .from('favorite_slangs')
-        .select('slang_term')
-        .eq('user_id', user.id);
+      const favoritesCollection = getFavoriteSlangCollection();
+      const favorites = await favoritesCollection.find({ userId: user._id }).toArray();
       
-      if (error) throw error;
-      
-      const favorites: Record<string, boolean> = {};
-      data.forEach(item => {
-        favorites[item.slang_term.toLowerCase()] = true;
+      const favoritesMap: Record<string, boolean> = {};
+      favorites.forEach(item => {
+        favoritesMap[item.slangTerm.toLowerCase()] = true;
       });
       
-      setLikedSlangs(favorites);
+      setLikedSlangs(favoritesMap);
       
       // Update current result if it exists
       if (slangResult && searchTerm) {
         setSlangResult({
           ...slangResult,
-          isLiked: favorites[searchTerm.toLowerCase()] || false
+          isLiked: favoritesMap[searchTerm.toLowerCase()] || false
         });
       }
     } catch (error) {
@@ -81,7 +78,7 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const toggleLike = async (slang: string) => {
-    if (!user) {
+    if (!user || !user._id) {
       toast.error('Please sign in to save favorites');
       return;
     }
@@ -105,23 +102,22 @@ export const SlangProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     
     try {
+      const favoritesCollection = getFavoriteSlangCollection();
+      
       if (!isCurrentlyLiked) {
         // Add to favorites
-        const { error } = await supabase
-          .from('favorite_slangs')
-          .insert({ user_id: user.id, slang_term: normalizedSlang });
-          
-        if (error) throw error;
+        await favoritesCollection.insertOne({
+          userId: user._id,
+          slangTerm: normalizedSlang,
+          createdAt: new Date()
+        });
         toast.success(`Added "${slang}" to your favorites`);
       } else {
         // Remove from favorites
-        const { error } = await supabase
-          .from('favorite_slangs')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('slang_term', normalizedSlang);
-          
-        if (error) throw error;
+        await favoritesCollection.deleteOne({
+          userId: user._id,
+          slangTerm: normalizedSlang
+        });
         toast.success(`Removed "${slang}" from your favorites`);
       }
     } catch (error) {

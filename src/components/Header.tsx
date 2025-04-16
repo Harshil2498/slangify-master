@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HeartIcon } from '../assets/icons';
+import { HeartIcon, HomeIcon, TrendingUpIcon } from 'lucide-react';
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -16,16 +16,45 @@ const Header = () => {
           Slangify
         </Link>
         
-        <nav>
+        <nav className="flex-1 mx-4">
+          <ul className="flex items-center space-x-4 md:space-x-6">
+            <li>
+              <Link 
+                to="/"
+                className={`flex items-center px-3 py-1.5 rounded-md hover:bg-primary/10 transition-colors ${
+                  location.pathname === '/' && !location.hash ? 'text-primary font-medium' : ''
+                }`}
+              >
+                <HomeIcon className="w-5 h-5 mr-1.5" />
+                <span>Home</span>
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/#popular"
+                className={`flex items-center px-3 py-1.5 rounded-md hover:bg-primary/10 transition-colors ${
+                  location.hash === '#popular' ? 'text-primary font-medium' : ''
+                }`}
+              >
+                <TrendingUpIcon className="w-5 h-5 mr-1.5" />
+                <span>Popular Slang</span>
+              </Link>
+            </li>
+          </ul>
+        </nav>
+        
+        <div>
           <ul className="flex items-center space-x-4">
             {user ? (
               <>
                 <li>
                   <Link 
                     to="/favorites"
-                    className="flex items-center px-3 py-1.5 rounded-md hover:bg-primary/10 transition-colors"
+                    className={`flex items-center px-3 py-1.5 rounded-md hover:bg-primary/10 transition-colors ${
+                      location.pathname === '/favorites' ? 'text-primary font-medium' : ''
+                    }`}
                   >
-                    <HeartIcon filled={location.pathname === '/favorites'} className="w-5 h-5 mr-1.5" />
+                    <HeartIcon className={`w-5 h-5 mr-1.5 ${location.pathname === '/favorites' ? 'fill-primary' : ''}`} />
                     <span>Favorites</span>
                   </Link>
                 </li>
@@ -52,7 +81,7 @@ const Header = () => {
               </li>
             )}
           </ul>
-        </nav>
+        </div>
       </div>
     </header>
   );

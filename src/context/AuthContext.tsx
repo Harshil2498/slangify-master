@@ -1,7 +1,21 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../integrations/supabase/client';
+import { ObjectId } from 'mongodb';
 import { toast } from 'sonner';
+import { 
+  createUser, 
+  signInUser, 
+  signOutUser, 
+  verifySession, 
+  isTestEmailDomain
+} from '../utils/auth';
+import { connectToMongoDB } from '../integrations/mongodb/client';
+import { User } from '../integrations/mongodb/models/User';
+
+interface Session {
+  token: string;
+  expiresAt: Date;
+}
 
 interface AuthContextType {
   session: Session | null;
@@ -15,43 +29,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to check if email is a test domain (for development purposes)
-const isTestEmailDomain = (email: string): boolean => {
-  const testDomains = ['example.com', 'test.com', 'localhost.com', 'fake.com'];
-  const domain = email.split('@')[1]?.toLowerCase();
-  return testDomains.includes(domain);
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize MongoDB connection
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (event === 'SIGNED_IN') {
-          toast.success('Signed in successfully');
-        } else if (event === 'SIGNED_OUT') {
-          toast.success('Signed out successfully');
+    const initMongoDB = async () => {
+      try {
+        await connectToMongoDB();
+        // Check for existing session in localStorage
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          const sessionData = await verifySession(token);
+          if (sessionData) {
+            setSession(sessionData.session);
+            setUser(sessionData.user);
+            toast.success('Signed in successfully');
+          } else {
+            // Invalid or expired session
+            localStorage.removeItem('authToken');
+          }
         }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize MongoDB:', error);
+        setIsLoading(false);
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+
+    initMongoDB();
   }, []);
 
   const isTestEmail = (email: string): boolean => {
@@ -60,14 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ 
-        email, 
-        password
-      });
+      const newUser = await createUser(email, password);
       
-      if (error) throw error;
-      
-      // Since we're not requiring email verification, we'll sign in immediately after signup
+      // Since we're not requiring email verification, sign in immediately after signup
       await signIn(email, password);
       toast.success('Account created successfully!');
     } catch (error) {
@@ -78,8 +81,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const { user, session } = await signInUser(email, password);
+      
+      // Store the token in localStorage
+      localStorage.setItem('authToken', session.token);
+      
+      setUser(user);
+      setSession(session);
+      
+      toast.success('Signed in successfully');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An error occurred during sign in');
       throw error;
@@ -88,8 +98,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        await signOutUser(token);
+        localStorage.removeItem('authToken');
+      }
+      
+      setUser(null);
+      setSession(null);
+      
+      toast.success('Signed out successfully');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An error occurred during sign out');
       throw error;
